@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+	<contextName>OmniMDAPI</contextName>
+	<!-- For status of logback console use this url => /LogbackViewStatusMessage -->
+	<!-- *********************************************** Properties *********************************************** -->
+	<property name="ENV_TYPE" value="DEV" />      <!-- Development Environment -->
+	<!-- <property name="ENV_TYPE" value="PRO" /> -->   <!-- Production Environment -->
+	<property name="LOG_DIR"
+		value="D:/ApplicationLogs/OmniMDAPI/LogFiles" />
+	<property resource="DB/sql.jdbc.properties" />
+	<timestamp key="timestamp" datePattern="dd.MMM.yyyy-HH.mm.ss"
+		timeReference="contextBirth" />
+	<timestamp key="date" datePattern="dd.MMM.yyyy"
+		timeReference="contextBirth" />
+	<!-- conversionWords : %t = %thread = Outputs the name of the thread that 
+		generated the logging event. %c = %lo = %logger = Outputs the name of the 
+		logger at the origin of the logging event %d = %date = Used to output the 
+		date of the logging event %m = %msg = %message = Outputs the application-supplied 
+		message associated with the logging event. %n = Outputs the platform dependent 
+		line separator character or characters %p = %le = %level = Outputs the level 
+		of the logging event. %r = %relative = Outputs the number of milliseconds 
+		elapsed since the start of the application until the creation of the logging 
+		event. for more info about conversionWord in pattern layout, visit : http://logback.qos.ch/manual/layouts.html#conversionWord -->
+	<!-- ******************************************** Console Appender ******************************************** -->
+	<if condition='property("ENV_TYPE").equals("DEV")'>
+		<then>
+			<appender name="STDOUT"
+				class="ch.qos.logback.core.ConsoleAppender">
+				<filter class="ch.qos.logback.classic.filter.LevelFilter">
+					<level>ERROR</level>
+					<onMatch>ACCEPT</onMatch>
+					<onMismatch>DENY</onMismatch>
+				</filter>
+				<encoder>
+					<pattern>%-5level %-50logger - %msg%n%xException</pattern>
+				</encoder>
+			</appender>
+			<root level="error">
+				<appender-ref ref="STDOUT" />
+			</root>
+		</then>
+	</if>
+	<!-- ********************************************* File Appender ********************************************* -->
+	<appender name="FILE"
+		class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>${LOG_DIR}/OmniMDAPI_${timestamp}.log</file>
+		<filter class="ch.qos.logback.classic.filter.LevelFilter">
+			<level>ERROR</level>
+			<onMatch>ACCEPT</onMatch>
+			<onMismatch>DENY</onMismatch>
+		</filter>
+		<rollingPolicy
+			class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+			<fileNamePattern>${LOG_DIR}/OmniMDAPI_${timestamp}_%i.log.zip
+			</fileNamePattern>
+			<minIndex>1</minIndex>
+			<maxIndex>10</maxIndex>
+		</rollingPolicy>
+		<triggeringPolicy
+			class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+			<maxFileSize>10MB</maxFileSize>
+		</triggeringPolicy>
+		<encoder>
+			<pattern>%d{HH:mm:ss.SSSS} [%X{REMOTE_ADDR} - %X{USER_NAME}] %-5level
+				%logger - %msg%n%xException</pattern>
+		</encoder>
+	</appender>
+	<!-- ********************************************* SMTP Appender ********************************************* -->
+	<if condition='property("ENV_TYPE").equals("PRO")'>
+		<then>
+			<appender name="EMAIL"
+				class="ch.qos.logback.classic.net.SMTPAppender">
+				<filter class="ch.qos.logback.classic.filter.LevelFilter">
+					<level>ERROR</level>
+					<onMatch>ACCEPT</onMatch>
+					<onMismatch>DENY</onMismatch>
+				</filter>
+				<smtpHost>surya.ismnet.com</smtpHost>
+				<to>ehrdev@ismnet.com</to>
+				<to>rcmdev@ismnet.com</to>
+				<!-- <to>ccjoshi@ismnet.com</to> -->
+				<!-- additional destinations are possible -->
+				<from>noreply@logback.OmniMDAPI.com</from>
+				<subject>OmniMDAPI-Error: ${HOSTNAME} - %m %logger</subject>
+				<layout class="ch.qos.logback.classic.html.HTMLLayout">
+					<pattern>%date%X{REMOTE_ADDR}%X{USER_NAME}%level%logger%message
+					</pattern>
+				</layout>
+				<cyclicBufferTracker
+					class="ch.qos.logback.core.spi.CyclicBufferTrackerImpl">
+					<bufferSize>20</bufferSize>
+					<!-- set number of log entry to send per email -->
+				</cyclicBufferTracker>
+			</appender>
+			<root level="error">
+				<appender-ref ref="EMAIL" />
+			</root>
+		</then>
+	</if>
+	<!-- **************************************** Audit Trail File Appender 
+		**************************************** -->
+	<appender name="SLF4JAuditWriterAppender"
+		class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<!-- <file>${LOG_DIR}/OmniMDAPI_Audit_${timestamp}.log</file> -->
+		<!-- logfile location -->
+		<filter class="ch.qos.logback.classic.filter.LevelFilter">
+			<level>INFO</level>
+			<onMatch>ACCEPT</onMatch>
+			<onMismatch>DENY</onMismatch>
+		</filter>
+		<encoder>
+			<pattern>%X{REQUEST_START_TIME}|~#|%X{USER_ID}|~#|%X{ENTITY_ID}|~#|%X{USER_ROLE}|~#|%X{ACTION_ID}|~#|%X{USER_NAME}|~#|%X{CLIENT_IP}|~#|%X{USER_AGENT}|~#|%X{BROWSER_NAME}|~#|%X{STATUS}|~#|%X{SERVER_NAME}|~#|%X{URL_STRING}|~#|%X{SERVER_IP}|~#|%X{CLINIC_ID}|~#|%X{REQUEST_PARAMS}|~#|%X{REQUEST_END_TIME}*LINEEND*%n
+			</pattern> <!-- the layout pattern used to format log entries -->
+			<!-- <pattern>%-5level [%thread] %date{ISO8601} %F:%L - %msg : %X{req.userAgent} 
+				: %X{req} %n</pattern> the layout pattern used to format log entries -->
+			<immediateFlush>true</immediateFlush>
+		</encoder>
+		<rollingPolicy
+			class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+			<fileNamePattern>${LOG_DIR}/OmniMDAPI_Audit_%d{dd.MMM.yyyy}.%i.log.zip
+			</fileNamePattern>
+			<minIndex>1</minIndex>
+			<maxIndex>100</maxIndex> <!-- max number of archived logs that are kept -->
+			<timeBasedFileNamingAndTriggeringPolicy
+				class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+				<maxFileSize>10MB</maxFileSize> <!-- The size of the logfile that triggers a switch to a new logfile, and 
+					the current one archived -->
+			</timeBasedFileNamingAndTriggeringPolicy>
+		</rollingPolicy>
+	</appender>
+	<logger name="com.omnione.common.interceptor" level="info"
+		additivity="false">
+		<appender-ref ref="SLF4JAuditWriterAppender" />
+	</logger>
+	<root level="error">
+		<appender-ref ref="FILE" />
+	</root>
+	<root level="info">
+		<appender-ref ref="SLF4JAuditWriterAppender" />
+	</root>
+</configuration>

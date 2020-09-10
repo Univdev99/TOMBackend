@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
+
+	<bean id="propertyConfigurer"
+		class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+		<property name="locations">
+			<list>
+				<value>classpath:DB/sql.jdbc.properties</value>
+				<value>classpath:DB/sql.properties</value>
+				<value>classpath:swagger.properties</value>
+			</list>
+		</property>
+	</bean>
+
+	<!-- <bean id="dataSource"
+		class="org.apache.commons.dbcp.BasicDataSource" destroy-method="close">
+		<property name="driverClassName"
+			value="${jdbc.driverClassName}" />
+		<property name="url" value="${jdbc.url}" />
+		<property name="username" value="${jdbc.username}" />
+		<property name="password" value="${jdbc.password}" />
+	</bean> -->
+	<bean id="dataSource" class="com.tom.common.project.EncryptedBasicDataSource"
+		destroy-method="close">
+		<property name="driverClassName" value="${jdbc.driverClassName}" />
+		<property name="jdbcUrl"
+			value="#{T(com.tom.common.encryption.TripleDES).decrypt('${jdbc.url}')}" />
+		<property name="username"
+			value="#{T(com.tom.common.encryption.TripleDES).decrypt('${jdbc.username}')}" />
+		<property name="password"
+			value="#{T(com.tom.common.encryption.TripleDES).decrypt('${jdbc.password}')}" />
+	</bean>
+
+	<bean id="sessionFactory"
+		class="org.springframework.orm.hibernate5.LocalSessionFactoryBean">
+		<property name="dataSource" ref="dataSource" />
+		<property name="hibernateProperties">
+			<props>
+				<prop key="hibernate.format_sql">true</prop>
+				<prop key="hibernate.show_sql">true</prop>
+				<prop key="dialect">
+					org.hibernate.dialect.SQLServer2012Dialect
+				</prop>
+				<prop key=" hibernate.connection.provider_class">
+					org.hibernate.hikaricp.internal.HikariCPConnectionProvider
+				</prop>
+				<prop key="hibernate.hikari.maximumPoolSize">
+					${jdbc.hikari.maximumPoolSize}
+				</prop>
+				<prop key="hibernate.hikari.idleTimeout">
+					${jdbc.hikari.idleTimeout}
+				</prop>
+				<prop key="hibernate.hikari.maxLifetime">
+					${jdbc.hikari.maxLifetime}
+				</prop>
+				<prop key="hibernate.enable_lazy_load_no_trans">true</prop>
+			</props>
+		</property>
+		<property name="packagesToScan">
+			<list>
+				<value>com.tom.*</value>
+			</list>
+		</property>
+	</bean>
+
+	<bean id="transactionManager"
+		class="org.springframework.orm.hibernate5.HibernateTransactionManager">
+		<property name="sessionFactory" ref="sessionFactory" />
+	</bean>
+
+	<bean id="persistenceExceptionTranslationPostProcessor"
+		class="org.springframework.dao.annotation.PersistenceExceptionTranslationPostProcessor" />
+
+	<bean name="OpenSessionInViewInterceptor"
+		class="org.springframework.orm.hibernate5.support.OpenSessionInViewInterceptor">
+		<property name="sessionFactory">
+			<ref bean="sessionFactory" />
+		</property>
+	</bean>
+</beans>

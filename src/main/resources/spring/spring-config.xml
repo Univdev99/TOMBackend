@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:aop="http://www.springframework.org/schema/aop" xmlns:security="http://www.springframework.org/schema/security"
+	xmlns:util="http://www.springframework.org/schema/util" xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xmlns:p="http://www.springframework.org/schema/p" xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-3.2.xsd
+  http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+  http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.2.xsd
+  http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.2.xsd
+  http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.2.xsd
+  http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security.xsd
+  http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd">
+
+	<import resource="classpath:DB/hibernate.cfg.xml" />
+	<context:component-scan base-package="com.tom" />
+	<mvc:annotation-driven>
+
+	</mvc:annotation-driven>
+
+	<context:annotation-config />
+	<mvc:default-servlet-handler />
+	<tx:annotation-driven transaction-manager="transactionManager" />
+	<!-- enable AOP -->
+	<aop:aspectj-autoproxy proxy-target-class="true" />
+	<bean id="aopLogDuration" class="com.tom.common.aspect.AopLogDuration" />
+	
+
+	<bean id="multipartResolver"
+		class="org.springframework.web.multipart.commons.CommonsMultipartResolver" />
+
+	<bean id="messageSource"
+		class="org.springframework.context.support.ResourceBundleMessageSource"
+		p:basename="messages" />
+	<mvc:resources mapping="swagger-ui.html" location="classpath:/META-INF/resources/" />
+	<mvc:resources mapping="/webjars/**"
+		location="classpath:/META-INF/resources/webjars/" />
+
+	<!-- Important for @Secured annotations to work. Here we enable all three 
+		of them - @Secured, @PreAuthorize and @RolesAllowed. You may choose what 
+		you use. -->
+	<security:global-method-security
+		secured-annotations="enabled" pre-post-annotations="enabled"
+		jsr250-annotations="enabled" />
+
+	<!-- Configuring interceptors based on URI -->
+	<mvc:interceptors>
+		<mvc:interceptor>
+			<mvc:mapping path="/**" />
+			<ref bean="OpenSessionInViewInterceptor" />
+		</mvc:interceptor>
+		<mvc:interceptor>
+			<mvc:mapping path="/tom/**" />
+			<bean class="com.tom.common.interceptor.LogbackMDCInterceptor"></bean>
+		</mvc:interceptor>
+		<mvc:interceptor>
+			<mvc:mapping path="/tom/**" />
+			<bean class="com.tom.common.interceptor.AuthorizationInterceptor">
+			</bean>
+		</mvc:interceptor>
+		<mvc:interceptor>
+			<mvc:mapping path="/common/**" />
+			<bean class="com.tom.common.interceptor.AuthorizationInterceptor">
+			</bean>
+		</mvc:interceptor>
+	</mvc:interceptors>
+</beans>
